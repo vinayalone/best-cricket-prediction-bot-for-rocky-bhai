@@ -28,7 +28,7 @@ PROMO_PLANS = {
     "10000": ("₹3499", 10000),
 }
 
-PAYMENT_UPI = "graphicinsight@axl"
+PAYMENT_UPI = ""
 PROMO_IMAGE = "https://i.imgur.com/5KXJ7Qp.jpg"
 
 logging.basicConfig(level=logging.INFO)
@@ -69,7 +69,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "This bot sends promotional messages automatically.\n\n"
         "We have 100k+ Users of data & of all Category\n\n"
         "For Paid Promotion: /promote\n"
-        "Support: @EvilxStar"
+        "jjj"
     )
 
 
@@ -105,13 +105,13 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     caption = "🔥 *BEST PREDICTIONS CHANNELS* 🔥👇\n\n"
 
     keyboard = [
-        [InlineKeyboardButton("🏏 CRICKET PREDICTION 🏏", url="https://t.me/+OnYD5obSG1JiY2I0")],
-        [InlineKeyboardButton("❤️ AISHA QUEEN ❤️", url="https://t.me/+n2cVw6BE060zYWU1")],
-        [InlineKeyboardButton("💥 IPL MATCH FIXER 💥", url="https://t.me/+zED2WoyVd5pjMWM1")],
-        [InlineKeyboardButton("❤️ IPL KA BAAP ❤️", url="https://t.me/+11G8xkxyhK9jMTM9")],
-        [InlineKeyboardButton("🎉 TODAY WINNER 🎉", url="https://t.me/+60uABbfEdZY1NjI9")],
-        [InlineKeyboardButton("👑 DN SESSION KING 👑", url="https://t.me/+EEwGg6UIFFY0MGU1")],
-        [InlineKeyboardButton("👸 FEMALE TIPPER 👸", url="https://t.me/+QfOSCO6H6uo3ODk1")],
+        [InlineKeyboardButton("🏏 CRICKET PREDICTION 🏏", url="https://t.me/+PQTY4_vhTco5Zjll")],
+        [InlineKeyboardButton("👑 SESSION KING 👑", url="https://t.me/+_7pgMhyDe8AzYzU1")],
+        [InlineKeyboardButton("💥 IPL MATCH FIXER 💥", url="https://t.me/+RGnQfgoIbAI4NTc1")],
+        [InlineKeyboardButton("❤️ IPL KA BAAP ❤️", url="https://t.me/+Sh9erckTGbcxM2Q1")],
+        [InlineKeyboardButton("🎉 TODAY WINNER 🎉", url="https://t.me/+k4kHAoV4JyU2ODVl")],
+        [InlineKeyboardButton("👑 CRICKET ANALYST 👑", url="https://t.me/+S5HM3-_fOrRmMTk1")],
+        [InlineKeyboardButton("💜 BEST TIPPER 💜", url="https://t.me/+wiSCnKP7yQk5ZDc1")],
     ]
 
     try:
@@ -355,6 +355,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
