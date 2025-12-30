@@ -2,6 +2,7 @@ import os
 import sqlite3
 import asyncio
 import logging
+
 from telegram import (
     Update,
     InlineKeyboardButton,
@@ -43,19 +44,18 @@ CREATE TABLE IF NOT EXISTS promotions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER,
     content TEXT,
-    photo_id TEXT,
     limit_users INTEGER
 )
 """)
 db.commit()
 
 
-def save_user(user_id):
+def save_user(user_id: int):
     cursor.execute("INSERT OR IGNORE INTO users VALUES (?)", (user_id,))
     db.commit()
 
 
-def remove_user(user_id):
+def remove_user(user_id: int):
     cursor.execute("DELETE FROM users WHERE user_id=?", (user_id,))
     db.commit()
 
@@ -67,9 +67,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Hello!\n\n"
         "This bot sends promotional messages automatically.\n\n"
-        "We have 100k+ Users of data & of all Category\n\n"
-        "For Paid Promotion: /promote\n"
-        "jjj"
+        "For Paid Promotion: /promote"
     )
 
 
@@ -82,18 +80,13 @@ async def promote(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     await update.message.reply_text(
-        "📢 *PAID PROMOTION DETAILS*\n\n"
-        "💼 Service: Channel Promotion\n\n"
-        "💳 Payment Method (UPI)\n"
-        f"• `{PAYMENT_UPI}`\n\n"
-        "📌 Instructions\n"
-        "1️⃣ Choose a plan\n"
-        "2️⃣ Complete the payment\n"
-        "3️⃣ Send payment screenshot\n\n"
-        "⏱️ Approval Time: 1–24 hours",
+        "📢 *PAID PROMOTION*\n\n"
+        "Choose a plan below 👇",
         reply_markup=InlineKeyboardMarkup(keyboard),
         parse_mode="Markdown",
     )
+
+
 
 # ---------------- JOIN REQUEST (ONLY DM PROMO) ----------------
 async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -125,9 +118,7 @@ async def join_request(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except TelegramError:
         pass
 
-
-
-# ---------------- CALLBACKS (FINAL FIX) ----------------
+# ---------------- CALLBACKS ----------------
 async def callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -135,9 +126,7 @@ async def callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = query.from_user.id
     data = query.data
 
-    # ====================================================
-    # 1️⃣ USER PROMOTION PLAN (EVERYONE)
-    # ====================================================
+    # -------- USER PLAN SELECTION --------
     if data.startswith("plan_"):
         plan_key = data.split("_")[1]
 
@@ -155,35 +144,30 @@ async def callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ *Plan Selected*\n\n"
             f"👥 Users: {limit_users}\n"
             f"💰 Price: {price}\n\n"
-            "📸 Please send your *payment screenshot* now.",
+            "📸 Send payment screenshot.",
             parse_mode="Markdown",
         )
         return
 
-    # ====================================================
-    # 🚫 BELOW THIS → ADMIN ONLY
-    # ====================================================
+    # -------- ADMIN ONLY --------
     if user_id != ADMIN_ID:
-        await query.answer("❌ Admin only", show_alert=True)
+        await query.answer("Admin only", show_alert=True)
         return
 
-    # ====================================================
-    # 2️⃣ ADMIN PANEL
-    # ====================================================
+    # -------- ADMIN COUNT --------
     if data == "admin_count":
         cursor.execute("SELECT COUNT(*) FROM users")
         total = cursor.fetchone()[0]
         await query.message.reply_text(f"👥 Total Users: {total}")
         return
 
+    # -------- ADMIN BROADCAST --------
     if data == "admin_broadcast":
         context.application.bot_data["broadcast"] = True
         await query.message.reply_text("📢 Send broadcast message now.")
         return
 
-    # ====================================================
-    # 3️⃣ ADMIN PROMO APPROVAL
-    # ====================================================
+    # -------- PROMO APPROVAL --------
     if data.startswith("approve_"):
         promo_id = int(data.split("_")[1])
 
@@ -202,7 +186,8 @@ async def callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         users = cursor.fetchall()
 
         sent = removed = 0
-                for (uid,) in users:
+
+        for (uid,) in users:
             try:
                 await context.bot.send_message(uid, content)
                 sent += 1
@@ -211,21 +196,19 @@ async def callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except TelegramError as e:
                 error_text = str(e).lower()
 
-                # ONLY remove user if bot is blocked or chat is invalid
                 if "blocked" in error_text or "chat not found" in error_text:
                     remove_user(uid)
                     removed += 1
 
-                # DO NOT remove for temporary errors
                 continue
-
-
 
         cursor.execute("DELETE FROM promotions WHERE id=?", (promo_id,))
         db.commit()
 
-        await query.message.edit_caption(
-            f"✅ Promotion Approved\n📤 Sent: {sent}\n🚮 Removed: {removed}"
+        await query.message.reply_text(
+            f"✅ Promotion Approved\n\n"
+            f"📤 Sent: {sent}\n"
+            f"🚮 Removed: {removed}"
         )
         return
 
@@ -233,64 +216,56 @@ async def callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         promo_id = int(data.split("_")[1])
         cursor.execute("DELETE FROM promotions WHERE id=?", (promo_id,))
         db.commit()
-        await query.message.edit_caption("❌ Promotion Rejected")
+        await query.message.reply_text("❌ Promotion Rejected")
         return
 
-# ---------------- RECEIVE USER DATA ----------------
-async def receive(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # ✅ SAFETY GUARD
-    if not update.effective_user or not update.message:
+# ---------------- RECEIVE ----------------
+async def receive(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not update.message or not update.effective_user:
         return
 
     user_id = update.effective_user.id
 
-    # ---------- ADMIN BROADCAST ----------
+    # -------- ADMIN BROADCAST --------
     if user_id == ADMIN_ID and context.application.bot_data.get("broadcast"):
         cursor.execute("SELECT user_id FROM users")
         users = cursor.fetchall()
 
         sent = removed = 0
+
         for (uid,) in users:
             try:
                 await update.message.copy(chat_id=uid)
                 sent += 1
                 await asyncio.sleep(0.1)
+
             except TelegramError as e:
-    error_text = str(e).lower()
+                error_text = str(e).lower()
 
-    if "blocked" in error_text or "chat not found" in error_text:
-        remove_user(uid)
-        removed += 1
+                if "blocked" in error_text or "chat not found" in error_text:
+                    remove_user(uid)
+                    removed += 1
 
-    continue
-
+                continue
 
         context.application.bot_data["broadcast"] = False
         await update.message.reply_text(
-            f"✅ Broadcast Done\n📤 Sent: {sent}\n🚮 Removed: {removed}"
+            f"✅ Broadcast Done\n\n📤 Sent: {sent}\n🚮 Removed: {removed}"
         )
         return
 
-    # ---------- PAYMENT SCREENSHOT ----------
+    # -------- PAYMENT SCREENSHOT --------
     if context.user_data.get("awaiting_payment") and update.message.photo:
-        context.user_data["payment_photo"] = update.message.photo[-1].file_id
         context.user_data["awaiting_payment"] = False
         context.user_data["awaiting_ad"] = True
 
-        await context.bot.send_photo(
-            chat_id=ADMIN_ID,
-            photo=context.user_data["payment_photo"],
-            caption=f"💰 Payment Screenshot\nUser ID: {user_id}",
-        )
-
         await update.message.reply_text(
-            "✅ Payment screenshot received.\n\n"
-            "📩 Now send your *ad message*."
+            "✅ Payment received.\n\nNow send your ad message."
         )
         return
 
-    # ---------- AD MESSAGE ----------
+    # -------- AD MESSAGE --------
     if context.user_data.get("awaiting_ad") and update.message.text:
         ad_text = update.message.text
         plan_users = context.user_data.get("plan_users")
@@ -302,14 +277,13 @@ async def receive(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db.commit()
         promo_id = cursor.lastrowid
 
-        await context.bot.send_photo(
+        await context.bot.send_message(
             chat_id=ADMIN_ID,
-            photo=context.user_data.get("payment_photo"),
-            caption=(
-                "🆕 *New Promotion Request*\n\n"
-                f"👤 User ID: `{user_id}`\n"
-                f"👥 Users: {plan_users}\n\n"
-                f"📝 *Ad Message:*\n{ad_text}"
+            text=(
+                "🆕 New Promotion Request\n\n"
+                f"User ID: {user_id}\n"
+                f"Users: {plan_users}\n\n"
+                f"Ad:\n{ad_text}"
             ),
             reply_markup=InlineKeyboardMarkup([
                 [
@@ -317,15 +291,10 @@ async def receive(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     InlineKeyboardButton("❌ Reject", callback_data=f"reject_{promo_id}")
                 ]
             ]),
-            parse_mode="Markdown",
         )
 
         context.user_data.clear()
-
-        await update.message.reply_text(
-            "⏳ Your promotion is under review.\n"
-            "You will be notified after admin approval."
-        )
+        await update.message.reply_text("⏳ Promotion sent for approval.")
         return
 
 
@@ -340,9 +309,8 @@ async def admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     await update.message.reply_text(
-        "🛠 *Admin Panel*",
+        "🛠 Admin Panel",
         reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode="Markdown",
     )
 
 
@@ -363,8 +331,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
