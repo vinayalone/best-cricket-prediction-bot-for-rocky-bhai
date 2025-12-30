@@ -202,21 +202,23 @@ async def callbacks(update: Update, context: ContextTypes.DEFAULT_TYPE):
         users = cursor.fetchall()
 
         sent = removed = 0
-        for (uid,) in users:
+                for (uid,) in users:
             try:
                 await context.bot.send_message(uid, content)
                 sent += 1
                 await asyncio.sleep(0.1)
+
             except TelegramError as e:
-    error_text = str(e)
+                error_text = str(e).lower()
 
-    # ONLY remove if bot is blocked or chat not found
-    if "blocked" in error_text.lower() or "chat not found" in error_text.lower():
-        remove_user(uid)
-        removed += 1
+                # ONLY remove user if bot is blocked or chat is invalid
+                if "blocked" in error_text or "chat not found" in error_text:
+                    remove_user(uid)
+                    removed += 1
 
-    # otherwise ignore (temporary error)
-    continue
+                # DO NOT remove for temporary errors
+                continue
+
 
 
         cursor.execute("DELETE FROM promotions WHERE id=?", (promo_id,))
@@ -254,9 +256,15 @@ async def receive(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.copy(chat_id=uid)
                 sent += 1
                 await asyncio.sleep(0.1)
-            except TelegramError:
-                remove_user(uid)
-                removed += 1
+            except TelegramError as e:
+    error_text = str(e).lower()
+
+    if "blocked" in error_text or "chat not found" in error_text:
+        remove_user(uid)
+        removed += 1
+
+    continue
+
 
         context.application.bot_data["broadcast"] = False
         await update.message.reply_text(
@@ -355,6 +363,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
